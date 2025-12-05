@@ -1,0 +1,1 @@
+{"data_source": "bootcamp/Futoshiki", "yaml_tool_path": "internbootcamp/bootcamps/futoshiki/configs/futoshiki_tool_config.yaml", "yaml_interaction_path": "internbootcamp/bootcamps/futoshiki/configs/futoshiki_interaction_config.yaml", "reward_calculator_class": "internbootcamp.bootcamps.futoshiki.futoshiki_reward_calculator.FutoshikiRewardCalculator"}

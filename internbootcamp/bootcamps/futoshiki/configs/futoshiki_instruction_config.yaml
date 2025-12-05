@@ -1,0 +1,14 @@
+instruction_generators:
+  default:
+    config: {}
+    tool_config_path: "internbootcamp/bootcamps/futoshiki/configs/futoshiki_tool_config.yaml"
+    interaction_config_path: "internbootcamp/bootcamps/futoshiki/configs/futoshiki_interaction_config.yaml"
+    generation_ratio: 1
+
+global_config:
+  class_name: "internbootcamp.bootcamps.futoshiki.futoshiki_instruction_generator.FutoshikiInstructionGenerator"
+  enable_random_seed: false
+  default_seed: 2024
+  default_split_samples:
+    test: 1
+  shuffle: false

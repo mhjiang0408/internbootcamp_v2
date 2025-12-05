@@ -1,0 +1,51 @@
+# -------------------------------
+# build-system
+# -------------------------------
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+# -------------------------------
+# project (PEP 621 metadata)
+# -------------------------------
+[project]
+name = "internbootcamp"
+version = "2.0.0"
+description = "internbootcamp"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "internbootcamp v2.0.0 Team"}
+]
+
+dependencies = [
+    "aiohttp>=3.9.0",
+    "fastapi>=0.110.0",
+    "httpx>=0.25.0",
+    "jsonlines>=4.0.0",
+    "matplotlib>=3.10.7",
+    "networkx>=3.4.2",
+    "openai>=1.14.0",
+    "pandas>=2.0.0",
+    "Pillow>=10.0.0",
+    "PyYAML>=6.0.0",
+    "torch>=2.3.0",
+    "tenacity>=8.2.0",
+    "tqdm>=4.66.0",
+    "transformers>=4.39.0",
+    "verl>=0.6.0",
+    "uvicorn>=0.29.0",
+]
+
+# -------------------------------
+# tool.setuptools - Additional config
+# -------------------------------
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"" = "."

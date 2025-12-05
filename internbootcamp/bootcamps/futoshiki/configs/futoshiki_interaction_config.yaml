@@ -1,0 +1,4 @@
+interaction:
+  - class_name: "internbootcamp.bootcamps.futoshiki.futoshiki_interaction.FutoshikiInteraction"
+    config:
+      name: "futoshiki_interaction"
