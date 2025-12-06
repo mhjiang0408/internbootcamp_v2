@@ -2,7 +2,10 @@ import yaml
 
 from typing import Any, Callable, Dict, List, Tuple
 import importlib
-from verl.tools.schemas import OpenAIFunctionToolSchema
+try:
+    from verl.tools.schemas import OpenAIFunctionToolSchema  # type: ignore
+except Exception:
+    OpenAIFunctionToolSchema = None  # Soft fallback when verl/torch is unavailable
 
 def load_tool_from_config(tool_config: dict) -> Tuple[str, Callable[[str, dict], Any], Dict[str, Any]]:
     """
@@ -27,6 +30,9 @@ def load_tool_from_config(tool_config: dict) -> Tuple[str, Callable[[str, dict],
     class_path = tool_config["class_name"]
     raw_schema = tool_config["tool_schema"]
     config = tool_config.get("config", {})
+
+    if OpenAIFunctionToolSchema is None:
+        raise ImportError("OpenAIFunctionToolSchema not available (verl/torch not installed); tool loading is disabled.")
 
     # === 1. 验证并构造 OpenAIFunctionToolSchema 实例 ===
     try:

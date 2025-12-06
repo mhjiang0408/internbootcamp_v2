@@ -12,6 +12,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+
+# Avoid torch import from transformers in CPU-only evaluation to prevent broken distributed builds
+os.environ.setdefault("TRANSFORMERS_NO_TORCH", "1")
+os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
+os.environ.setdefault("TRANSFORMERS_NO_FLAX", "1")
 from typing import Any, Dict, List
 
 from internbootcamp.bootcamps.futoshiki.futoshiki_reward_calculator import FutoshikiRewardCalculator

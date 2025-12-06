@@ -8,16 +8,12 @@ import asyncio
 import httpx
 import csv
 
-from transformers import AutoTokenizer
 import pandas as pd
 from tqdm import tqdm
 from typing import Any, Dict, List, Optional, Callable, Tuple
 from tenacity import retry, stop_after_attempt, wait_exponential
 from internbootcamp.utils.format_time_now import format_time_now
-from internbootcamp.utils.load_tool_from_config import load_tool_from_config
-from internbootcamp.utils.load_interaction_from_config import load_interaction_from_config
 from internbootcamp.utils.load_class_from_str import load_class_from_string
-from internbootcamp.src.base_tool import BaseTool
 from internbootcamp.src.base_interaction import BaseInteraction
 from internbootcamp.src.base_reward_calculator import BaseRewardCalculator
 import jsonlines
@@ -108,6 +104,7 @@ class BaseEvaluator:
         if not self.tokenizer_path:
             return None
         try:
+            from transformers import AutoTokenizer  # Lazy import to avoid torch dependency when unused
             default_tokenizer = AutoTokenizer.from_pretrained(
                 self.tokenizer_path, 
                 trust_remote_code=True
@@ -160,6 +157,7 @@ class BaseEvaluator:
         """
         从 YAML 文件加载工具配置，构建 tools 和 tool_registry
         """
+        from internbootcamp.utils.load_tool_from_config import load_tool_from_config  # local import to avoid heavy deps when unused
         with open(yaml_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
         tools_config = config.get("tools", [])
@@ -185,6 +183,9 @@ class BaseEvaluator:
         interaction_config = config.get("interaction", [])
         if len(interaction_config) > 1:
             raise ValueError("Interaction config should only contain one interaction")
+        from internbootcamp.utils.load_interaction_from_config import (  # local import to avoid heavy deps when unused
+            load_interaction_from_config,
+        )
         interaction_instance = load_interaction_from_config(interaction_config[0])
         return interaction_instance
     

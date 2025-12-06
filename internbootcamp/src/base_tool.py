@@ -16,9 +16,11 @@ import json
 from typing import Any, Optional
 from uuid import uuid4
 
-from verl.utils.rollout_trace import rollout_trace_op
-
-from verl.tools.schemas import OpenAIFunctionToolSchema
+# Avoid importing verl (pulls torch/tensordict) in CPU-only / tool-free eval flows.
+try:
+    from verl.tools.schemas import OpenAIFunctionToolSchema  # type: ignore
+except Exception:
+    OpenAIFunctionToolSchema = Any  # soft fallback; real tools can inject schema at runtime
 
 
 class BaseTool:
@@ -33,12 +35,11 @@ class BaseTool:
     - `release`: release the tool instance.
     """
 
-    def __init__(self, config: dict, tool_schema: OpenAIFunctionToolSchema):
+    def __init__(self, config: dict, tool_schema: Optional[OpenAIFunctionToolSchema] = None):
         self.config = config
         self._instance_dict = {}
         self.tool_schema = tool_schema or self.get_openai_tool_schema()
-        assert self.tool_schema is not None, "Tool schema is not set!"
-        self.name = self.tool_schema.function.name
+        self.name = getattr(getattr(self.tool_schema, "function", None), "name", "unknown_tool")
         # print(json.dumps(self.tool_schema.model_dump(exclude_unset=True, exclude_none=True), indent=2))
 
     def get_openai_tool_schema(self) -> OpenAIFunctionToolSchema:
@@ -52,7 +53,6 @@ class BaseTool:
         self._instance_dict[instance_id] = identity
         return instance_id
 
-    @rollout_trace_op
     async def execute(self, instance_id: str, parameters: dict[str, Any], **kwargs) -> tuple[str, float, dict]:
         """Execute the tool.
 
