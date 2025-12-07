@@ -19,8 +19,10 @@ os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
 os.environ.setdefault("TRANSFORMERS_NO_FLAX", "1")
 from typing import Any, Dict, List
 
+import random
+
 from internbootcamp.bootcamps.futoshiki.futoshiki_reward_calculator import FutoshikiRewardCalculator
-from internbootcamp.bootcamps.futoshiki.puzzle_case import default_futoshiki_case
+from internbootcamp.bootcamps.futoshiki.puzzle_case import default_futoshiki_case, random_futoshiki_case
 
 # Defaults can be overridden with env vars FUTOSHIKI_API_BASE/FUTOSHIKI_API_KEY
 DEFAULT_API_BASE = "https://jpd5c8gqpmcmc8jpmkqkq8kqajjkqqkh.openapi-qb.sii.edu.cn/v1"
@@ -33,14 +35,17 @@ SYSTEM_PROMPT = (
 )
 
 
-def build_futoshiki_query(case: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def build_futoshiki_query(case: Dict[str, Any] | None = None, seed: int | None = None) -> Dict[str, Any]:
     """
     Build a single RLVR query dict understood by BaseEvaluator.
 
     Returns a dict containing the chat messages plus the ground-truth identity
     the verifier will use.
     """
-    identity = dict(case or default_futoshiki_case())
+    if case is None:
+        identity = dict(random_futoshiki_case(seed=seed))
+    else:
+        identity = dict(case)
     prompt = (
         identity["question"]
         + "\nAlways end with a single line starting with `Answer:` followed by the completed grid in the same ASCII layout."
@@ -56,9 +61,13 @@ def build_futoshiki_query(case: Dict[str, Any] | None = None) -> Dict[str, Any]:
     }
 
 
-def build_dataset(samples: int) -> List[Dict[str, Any]]:
-    """Create a small in-memory dataset for evaluation."""
-    return [build_futoshiki_query() for _ in range(samples)]
+def build_dataset(samples: int, base_seed: int | None = None) -> List[Dict[str, Any]]:
+    """
+    Create a small in-memory dataset for evaluation.
+    Each sample gets a different seed; set base_seed for reproducibility.
+    """
+    rng = random.Random(base_seed)
+    return [build_futoshiki_query(seed=rng.randrange(1, 2**31)) for _ in range(samples)]
 
 
 def verify_futoshiki_completion(model_output: str, ground_truth: Dict[str, Any]) -> float:
@@ -114,7 +123,7 @@ def parse_args() -> argparse.Namespace:
         default=os.environ.get("FUTOSHIKI_API_KEY", DEFAULT_API_KEY),
         help="API key; can also be set via FUTOSHIKI_API_KEY.",
     )
-    parser.add_argument("--samples", type=int, default=1, help="How many identical Futoshiki cases to evaluate.")
+    parser.add_argument("--samples", type=int, default=1, help="How many Futoshiki cases to evaluate (randomized).")
     parser.add_argument(
         "--output-dir",
         default="outputs/futoshiki_rlvr",

@@ -1,7 +1,9 @@
-"""Static Futoshiki puzzle used for instruction/data generation."""
+"""Static and procedural Futoshiki puzzle cases used for instruction/data generation."""
 
 from __future__ import annotations
 
+import copy
+import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
@@ -152,3 +154,105 @@ def default_futoshiki_case() -> Dict[str, Any]:
         constraints=_build_constraint_map(constraint_triples),
     )
     return case.build_identity()
+
+
+# -------------------------
+# Procedural case generator
+# -------------------------
+
+def _latin_square(size: int, rng: random.Random) -> Grid:
+    """Generate a valid Latin square then permute rows/cols/values for randomness."""
+    base = [[((r + c) % size) + 1 for c in range(size)] for r in range(size)]
+    row_idx = list(range(size))
+    col_idx = list(range(size))
+    val_perm = list(range(1, size + 1))
+    rng.shuffle(row_idx)
+    rng.shuffle(col_idx)
+    rng.shuffle(val_perm)
+    grid: Grid = []
+    for r in row_idx:
+        grid.append([val_perm[base[r][c] - 1] for c in col_idx])
+    return grid
+
+
+def _generate_constraints(solution: Grid, rng: random.Random, base_prob: float) -> Dict[ConstraintKey, str]:
+    constraints: Dict[ConstraintKey, str] = {}
+    size = len(solution)
+    for r in range(size):
+        for c in range(size):
+            if c < size - 1 and rng.random() < base_prob:
+                sign = "<" if solution[r][c] < solution[r][c + 1] else ">"
+                constraints[((r, c), (r, c + 1))] = sign
+            if r < size - 1 and rng.random() < base_prob:
+                sign = "<" if solution[r][c] < solution[r + 1][c] else ">"
+                constraints[((r, c), (r + 1, c))] = sign
+    return constraints
+
+
+def _remove_clues(solution: Grid, rng: random.Random, target_ratio: float = 0.45) -> Grid:
+    """Remove clues down to a target fill ratio. No uniqueness guarantee, but OK for RL self-play."""
+    grid = copy.deepcopy(solution)
+    size = len(grid)
+    coords = [(r, c) for r in range(size) for c in range(size)]
+    rng.shuffle(coords)
+    target_filled = max(int(size * size * target_ratio), size)  # keep at least one clue per row-ish
+
+    def filled() -> int:
+        return sum(1 for r in range(size) for c in range(size) if grid[r][c] != 0)
+
+    for r, c in coords:
+        if filled() <= target_filled:
+            break
+        grid[r][c] = 0
+    return grid
+
+
+def random_futoshiki_case(
+    seed: int | None = None,
+    min_board_size: int = 4,
+    max_board_size: int = 6,
+    constraint_density: float = 0.18,
+) -> Dict[str, Any]:
+    """
+    Build a random Futoshiki case (puzzle + ground-truth) using a Latin square base.
+    Each call with a new seed yields a different instance.
+    """
+    rng = random.Random(seed)
+    size = rng.randint(min_board_size, max_board_size)
+
+    solution_grid = _latin_square(size, rng)
+    constraints = _generate_constraints(solution_grid, rng, base_prob=constraint_density)
+    puzzle_grid = _remove_clues(solution_grid, rng)
+
+    puzzle_str = _FutoshikiRenderer.puzzle_to_string(puzzle_grid, constraints)
+    solution_str = _FutoshikiRenderer.puzzle_to_string(solution_grid, constraints)
+
+    constraint_items = [
+        {"r1": a[0], "c1": a[1], "r2": b[0], "c2": b[1], "sign": sign} for (a, b), sign in constraints.items()
+    ]
+
+    question = (
+        "You are a Futoshiki (Latin square) expert. "
+        f"Fill every row and column with the numbers 1 through {size} exactly once.\n"
+        "Inequalities (<, >, ∧, ∨) between adjacent cells must also be respected.\n\n"
+        f"Puzzle:\n{puzzle_str}\n\n"
+        "Return the completed grid using the same ASCII layout as the puzzle. "
+        "Please end your response with a single line that starts with Answer: followed by the grid.\n"
+    )
+
+    metadata = {
+        "puzzle_grid": puzzle_grid,
+        "solution_grid": solution_grid,
+        "constraints": constraint_items,
+        "board_size": size,
+        "seed": seed,
+    }
+
+    return {
+        "question": question,
+        "solution_string": solution_str,
+        "solution_grid": solution_grid,
+        "constraints": constraint_items,
+        "board_size": size,
+        "metadata": metadata,
+    }
